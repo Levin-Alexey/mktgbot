@@ -1,5 +1,3 @@
-import START_IMAGE from "./p1.jpg" with { type: "bytes" };
-
 const GREETING = "Привет, я бот!";
 
 export default {
@@ -31,27 +29,6 @@ export default {
     }
 
     const apiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
-    const photoForm = new FormData();
-    photoForm.set("chat_id", String(chatId));
-    photoForm.set(
-      "photo",
-      new Blob([START_IMAGE], { type: "image/jpeg" }),
-      "start.jpg",
-    );
-    const photoResponse = await fetch(`${apiUrl}/sendPhoto`, {
-      method: "POST",
-      body: photoForm,
-    });
-
-    if (!photoResponse.ok) {
-      console.error(
-        "Telegram sendPhoto failed:",
-        photoResponse.status,
-        await photoResponse.text(),
-      );
-      return new Response("Failed to send start photo", { status: 502 });
-    }
-
     const greetingResponse = await fetch(`${apiUrl}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

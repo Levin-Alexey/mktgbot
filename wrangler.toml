@@ -2,6 +2,9 @@ name = "mktgbot"
 main = "index.js"
 compatibility_date = "2026-10-24"
 
+[vars]
+APPLICATIONS_CHAT_ID = "-1004385989409"
+
 [[d1_databases]]
 binding = "DB"
 database_id = "ff701f6d-402f-4534-bff7-18a10ffe94a5"

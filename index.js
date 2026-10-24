@@ -1,37 +1,26 @@
-import handleFreeLesson from "./handlers/free-lesson.js";
+import handleStart from "./handlers/start.js";
+import handleFreeLesson, {
+  clearFreeLessonState,
+  handleFreeLessonAction,
+  handleFreeLessonMessage,
+} from "./handlers/free-lesson.js";
 import handleCourses from "./handlers/courses.js";
 import handleCourseSelection from "./handlers/course-selection.js";
 import handleStudentProjects from "./handlers/student-projects.js";
 import handlePricing from "./handlers/pricing.js";
 import handleQuestion from "./handlers/question.js";
+import { callTelegram } from "./telegram.js";
 
-const GREETING = `Будущее уже наступило - и наши дети будут жить в мире искусственного интеллекта, умных программ и технологий, которые сегодня меняются буквально каждый день.
-
-Наша задача - не просто познакомить ребёнка с ИИ. Мы хотим научить его понимать современные технологии, правильно ими пользоваться, мыслить самостоятельно, придумывать идеи и превращать их в настоящие проекты.
-
-На занятиях дети работают с искусственным интеллектом, делают первые шаги в программировании, создают сайты, игры, приложения, изображения и собственные цифровые проекты.
-
-Для нас важно, чтобы ребёнок не просто умел спросить что-то у нейросети и получить готовый ответ. Мы учим использовать ИИ как инструмент для творчества, обучения, решения задач и реализации собственных идей.
-
-🚀 Здесь ребёнок становится не просто пользователем технологий, а человеком, который понимает их и умеет создавать с их помощью новое.
-
-Мир меняется. Давайте поможем нашим детям быть к этому готовыми.
-
-❤️ Будем строить будущее вместе!`;
-
-const INLINE_KEYBOARD = {
-  inline_keyboard: [
-    [{ text: "🎁 БЕСПЛАТНЫЙ УРОК", callback_data: "free-lesson" }],
-    [{ text: "📚 НАШИ КУРСЫ", callback_data: "courses" }],
-    [{ text: "🧭 ПОДОБРАТЬ КУРС", callback_data: "course-selection" }],
-    [{ text: "🏆 ПРОЕКТЫ УЧЕНИКОВ", callback_data: "student-projects" }],
-    [{ text: "💰 СТОИМОСТЬ ЗАНЯТИЙ", callback_data: "pricing" }],
-    [{ text: "❓ ЗАДАТЬ ВОПРОС", callback_data: "question" }],
-  ],
-};
-
+// Обработчик получает ctx и может сам отправить сообщения или вернуть строку-ответ
 const BUTTON_HANDLERS = {
+  menu: handleStart,
   "free-lesson": handleFreeLesson,
+  "fl-dir-ai": handleFreeLessonAction,
+  "fl-dir-prog": handleFreeLessonAction,
+  "fl-dir-help": handleFreeLessonAction,
+  "fl-about-skip": handleFreeLessonAction,
+  "fl-confirm": handleFreeLessonAction,
+  "fl-edit": handleFreeLessonAction,
   courses: handleCourses,
   "course-selection": handleCourseSelection,
   "student-projects": handleStudentProjects,
@@ -39,23 +28,66 @@ const BUTTON_HANDLERS = {
   question: handleQuestion,
 };
 
-async function telegramRequest(apiUrl, method, body) {
-  const response = await fetch(`${apiUrl}/${method}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+function createContext(env, apiUrl, chatId, from, data) {
+  const tg = (method, body) => callTelegram(apiUrl, method, body);
+  return {
+    env,
+    chatId,
+    from,
+    data,
+    tg,
+    send: (text, replyMarkup) =>
+      tg("sendMessage", {
+        chat_id: chatId,
+        text,
+        ...(replyMarkup && { reply_markup: replyMarkup }),
+      }),
+  };
+}
+
+async function handleCallback(env, apiUrl, callbackQuery) {
+  const handler = Object.hasOwn(BUTTON_HANDLERS, callbackQuery.data)
+    ? BUTTON_HANDLERS[callbackQuery.data]
+    : undefined;
+
+  await callTelegram(apiUrl, "answerCallbackQuery", {
+    callback_query_id: callbackQuery.id,
+    ...(!handler && { text: "Неизвестная команда", show_alert: true }),
   });
 
-  if (!response.ok) {
-    console.error(
-      `Telegram ${method} failed:`,
-      response.status,
-      await response.text(),
-    );
-    return false;
+  const chatId = callbackQuery.message?.chat?.id;
+  if (!handler || chatId === undefined) {
+    return;
   }
 
-  return true;
+  const ctx = createContext(
+    env,
+    apiUrl,
+    chatId,
+    callbackQuery.from,
+    callbackQuery.data,
+  );
+  const reply = await handler(ctx);
+  if (typeof reply === "string") {
+    await ctx.send(reply);
+  }
+}
+
+async function handleMessage(env, apiUrl, message) {
+  // Бот состоит в группе заявок: сообщения вне личного чата игнорируем
+  if (message.chat?.type !== "private") {
+    return;
+  }
+
+  const ctx = createContext(env, apiUrl, message.chat.id, message.from);
+
+  if (message.text?.match(/^\/start(?:@\w+)?(?:\s|$)/)) {
+    await clearFreeLessonState(env, ctx.chatId);
+    await handleStart(ctx);
+    return;
+  }
+
+  await handleFreeLessonMessage(ctx, message.text);
 }
 
 export default {
@@ -72,19 +104,7 @@ export default {
       return new Response("Invalid JSON", { status: 400 });
     }
 
-    const message = update?.message;
-    const callbackQuery = update?.callback_query;
-    const isStartCommand =
-      message?.chat?.id !== undefined &&
-      message.text?.match(/^\/start(?:@\w+)?(?:\s|$)/);
-    const callbackHandler = Object.hasOwn(
-      BUTTON_HANDLERS,
-      callbackQuery?.data,
-    )
-      ? BUTTON_HANDLERS[callbackQuery.data]
-      : undefined;
-
-    if (!isStartCommand && !callbackQuery) {
+    if (!update?.message && !update?.callback_query) {
       return new Response("OK");
     }
 
@@ -95,63 +115,17 @@ export default {
 
     const apiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
 
-    if (callbackQuery) {
-      const callbackAnswered = await telegramRequest(
-        apiUrl,
-        "answerCallbackQuery",
-        {
-          callback_query_id: callbackQuery.id,
-          ...(!callbackHandler && {
-            text: "Неизвестная команда",
-            show_alert: true,
-          }),
-        },
-      );
-
-      if (!callbackAnswered) {
-        return new Response("Failed to answer callback", { status: 502 });
-      }
-
-      const chatId = callbackQuery.message?.chat?.id;
-      if (!callbackHandler || chatId === undefined) {
-        return new Response("OK");
-      }
-
-      const reply = callbackHandler();
-      const replySent = await telegramRequest(apiUrl, "sendMessage", {
-        chat_id: chatId,
-        text: reply,
-      });
-
-      return replySent
-        ? new Response("OK")
-        : new Response("Failed to send button response", { status: 502 });
-    }
-
-    const chatId = message.chat.id;
-
-    // Сбой БД не должен мешать показать приветствие
+    // Ошибки не пробрасываем: иначе Telegram повторит апдейт и заявка продублируется
     try {
-      await env.DB.prepare(
-        `INSERT INTO users (telegram_id, created_at, last_seen_at)
-         VALUES (?1, datetime('now'), datetime('now'))
-         ON CONFLICT(telegram_id) DO UPDATE SET
-           last_seen_at = datetime('now')`,
-      )
-        .bind(chatId)
-        .run();
+      if (update.callback_query) {
+        await handleCallback(env, apiUrl, update.callback_query);
+      } else {
+        await handleMessage(env, apiUrl, update.message);
+      }
     } catch (error) {
-      console.error("Failed to save user:", error);
+      console.error("Failed to handle update:", error);
     }
 
-    const greetingSent = await telegramRequest(apiUrl, "sendMessage", {
-      chat_id: chatId,
-      text: GREETING,
-      reply_markup: INLINE_KEYBOARD,
-    });
-
-    return greetingSent
-      ? new Response("OK")
-      : new Response("Failed to send greeting", { status: 502 });
+    return new Response("OK");
   },
 };

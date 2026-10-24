@@ -22,16 +22,16 @@ const GREETING = `Будущее уже наступило - и наши дет�
 const INLINE_KEYBOARD = {
   inline_keyboard: [
     [
-      { text: "БЕСПЛАТНЫЙ УРОК", callback_data: "free-lesson" },
-      { text: "НАШИ КУРСЫ", callback_data: "courses" },
+      { text: "🎁 БЕСПЛАТНЫЙ УРОК", callback_data: "free-lesson" },
+      { text: "📚 НАШИ КУРСЫ", callback_data: "courses" },
     ],
     [
-      { text: "ПОДОБРАТЬ КУРС", callback_data: "course-selection" },
-      { text: "ПРОЕКТЫ УЧЕНИКОВ", callback_data: "student-projects" },
+      { text: "🧭 ПОДОБРАТЬ КУРС", callback_data: "course-selection" },
+      { text: "🏆 ПРОЕКТЫ УЧЕНИКОВ", callback_data: "student-projects" },
     ],
     [
-      { text: "СТОИМОСТЬ ОБУЧЕНИЯ", callback_data: "pricing" },
-      { text: "ЗАДАТЬ ВОПРОС", callback_data: "question" },
+      { text: "💰 СТОИМОСТЬ", callback_data: "pricing" },
+      { text: "❓ ЗАДАТЬ ВОПРОС", callback_data: "question" },
     ],
   ],
 };

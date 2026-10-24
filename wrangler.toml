@@ -2,6 +2,10 @@ name = "mktgbot"
 main = "index.js"
 compatibility_date = "2026-10-24"
 
+[[d1_databases]]
+binding = "DB"
+database_id = "ff701f6d-402f-4534-bff7-18a10ffe94a5"
 
-
-
+[[kv_namespaces]]
+binding = "KV"
+id = "1d33a2917dff4de4921fc1d5ad832fc9"

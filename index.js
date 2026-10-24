@@ -134,8 +134,24 @@ export default {
         : new Response("Failed to send button response", { status: 502 });
     }
 
+    const chatId = message.chat.id;
+
+    // Сбой БД не должен мешать показать приветствие
+    try {
+      await env.DB.prepare(
+        `INSERT INTO users (telegram_id, created_at, last_seen_at)
+         VALUES (?1, datetime('now'), datetime('now'))
+         ON CONFLICT(telegram_id) DO UPDATE SET
+           last_seen_at = datetime('now')`,
+      )
+        .bind(chatId)
+        .run();
+    } catch (error) {
+      console.error("Failed to save user:", error);
+    }
+
     const greetingSent = await telegramRequest(apiUrl, "sendMessage", {
-      chat_id: message.chat.id,
+      chat_id: chatId,
       text: GREETING,
       reply_markup: INLINE_KEYBOARD,
     });

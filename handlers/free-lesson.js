@@ -1,3 +1,4 @@
+import { postToUserTopic } from "../group.js";
 import { saveUser } from "./start.js";
 
 const STATE_TTL_SECONDS = 24 * 60 * 60;
@@ -5,7 +6,6 @@ const MAX_TEXT_LENGTH = 500;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const stateKey = (chatId) => `fsm:free-lesson:${chatId}`;
-const topicKey = (chatId) => `topic:${chatId}`;
 
 const STEPS = [
   "parent_name",
@@ -226,41 +226,7 @@ async function submitApplication(ctx, state) {
 }
 
 async function notifyGroup(ctx, applicationId, state) {
-  const { env, chatId } = ctx;
-  const groupId = env.APPLICATIONS_CHAT_ID;
-  if (!groupId) {
-    console.error("Missing APPLICATIONS_CHAT_ID");
-    return;
-  }
-
   const username = state.username ? `@${state.username}` : "без username";
-  const text = `🆕 Новая заявка #${applicationId}\nTelegram: ${username} (ID ${chatId})\n\n${formatFields(state.data)}`;
-
-  const savedTopic = await env.KV.get(topicKey(chatId));
-  if (savedTopic) {
-    const sent = await ctx.tg("sendMessage", {
-      chat_id: groupId,
-      message_thread_id: Number(savedTopic),
-      text,
-    });
-    if (sent) {
-      return;
-    }
-  }
-
-  // Новый пользователь (или топик удалён): создаём отдельный топик
-  const topic = await ctx.tg("createForumTopic", {
-    chat_id: groupId,
-    name: `${state.data.parent_name} · ${chatId}`.slice(0, 128),
-  });
-  if (!topic?.message_thread_id) {
-    return;
-  }
-
-  await env.KV.put(topicKey(chatId), String(topic.message_thread_id));
-  await ctx.tg("sendMessage", {
-    chat_id: groupId,
-    message_thread_id: topic.message_thread_id,
-    text,
-  });
+  const text = `🆕 Новая заявка #${applicationId}\nTelegram: ${username} (ID ${ctx.chatId})\n\n${formatFields(state.data)}`;
+  await postToUserTopic(ctx, state.data.parent_name, text);
 }

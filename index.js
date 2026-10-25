@@ -8,8 +8,19 @@ import handleCourses from "./handlers/courses.js";
 import handleCourseSelection from "./handlers/course-selection.js";
 import handleStudentProjects from "./handlers/student-projects.js";
 import handlePricing from "./handlers/pricing.js";
-import handleQuestion from "./handlers/question.js";
+import handleQuestion, {
+  clearQuestionState,
+  handleQuestionMessage,
+  hasQuestionState,
+} from "./handlers/question.js";
 import { callTelegram } from "./telegram.js";
+
+async function clearAllStates(env, chatId) {
+  await Promise.all([
+    clearFreeLessonState(env, chatId),
+    clearQuestionState(env, chatId),
+  ]);
+}
 
 // Обработчик получает ctx и может сам отправить сообщения или вернуть строку-ответ
 const BUTTON_HANDLERS = {
@@ -67,6 +78,11 @@ async function handleCallback(env, apiUrl, callbackQuery) {
     callbackQuery.from,
     callbackQuery.data,
   );
+  // Переход в другой раздел отменяет незавершённый диалог; кнопки опроса (fl-*) его продолжают
+  if (!callbackQuery.data.startsWith("fl-")) {
+    await clearAllStates(env, chatId);
+  }
+
   const reply = await handler(ctx);
   if (typeof reply === "string") {
     await ctx.send(reply);
@@ -82,8 +98,13 @@ async function handleMessage(env, apiUrl, message) {
   const ctx = createContext(env, apiUrl, message.chat.id, message.from);
 
   if (message.text?.match(/^\/start(?:@\w+)?(?:\s|$)/)) {
-    await clearFreeLessonState(env, ctx.chatId);
+    await clearAllStates(env, ctx.chatId);
     await handleStart(ctx);
+    return;
+  }
+
+  if (await hasQuestionState(env, ctx.chatId)) {
+    await handleQuestionMessage(ctx, message.text);
     return;
   }
 

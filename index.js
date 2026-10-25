@@ -8,18 +8,9 @@ import handleCourses, {
   handleAiCourses,
   handleProgrammingCourses,
 } from "./handlers/courses.js";
-import {
-  handleAiCreator,
-  handleAiDeveloper,
-  handleAiEngineer,
-  handleAiResearcher,
-  handleProgBasic,
-  handleProgBeginner,
-  handleProgDeveloper,
-  handleProgEngineer,
-} from "./handlers/course-levels.js";
+import { COURSE_HANDLERS } from "./handlers/course-levels.js";
 import handleCourseSelection from "./handlers/course-selection.js";
-import handleStudentProjects from "./handlers/student-projects.js";
+import { STUDENT_PROJECT_HANDLERS } from "./handlers/student-projects.js";
 import handlePricing from "./handlers/pricing.js";
 import handleQuestion, {
   clearQuestionState,
@@ -48,16 +39,9 @@ const BUTTON_HANDLERS = {
   courses: handleCourses,
   "courses-ai": handleAiCourses,
   "courses-programming": handleProgrammingCourses,
-  "ai-researcher": handleAiResearcher,
-  "ai-creator": handleAiCreator,
-  "ai-developer": handleAiDeveloper,
-  "ai-engineer": handleAiEngineer,
-  "prog-basic": handleProgBasic,
-  "prog-beginner": handleProgBeginner,
-  "prog-developer": handleProgDeveloper,
-  "prog-engineer": handleProgEngineer,
+  ...COURSE_HANDLERS,
   "course-selection": handleCourseSelection,
-  "student-projects": handleStudentProjects,
+  ...STUDENT_PROJECT_HANDLERS,
   pricing: handlePricing,
   question: handleQuestion,
 };

@@ -4,7 +4,20 @@ import handleFreeLesson, {
   handleFreeLessonAction,
   handleFreeLessonMessage,
 } from "./handlers/free-lesson.js";
-import handleCourses from "./handlers/courses.js";
+import handleCourses, {
+  handleAiCourses,
+  handleProgrammingCourses,
+} from "./handlers/courses.js";
+import {
+  handleAiCreator,
+  handleAiDeveloper,
+  handleAiEngineer,
+  handleAiResearcher,
+  handleProgBasic,
+  handleProgBeginner,
+  handleProgDeveloper,
+  handleProgEngineer,
+} from "./handlers/course-levels.js";
 import handleCourseSelection from "./handlers/course-selection.js";
 import handleStudentProjects from "./handlers/student-projects.js";
 import handlePricing from "./handlers/pricing.js";
@@ -33,6 +46,16 @@ const BUTTON_HANDLERS = {
   "fl-confirm": handleFreeLessonAction,
   "fl-edit": handleFreeLessonAction,
   courses: handleCourses,
+  "courses-ai": handleAiCourses,
+  "courses-programming": handleProgrammingCourses,
+  "ai-researcher": handleAiResearcher,
+  "ai-creator": handleAiCreator,
+  "ai-developer": handleAiDeveloper,
+  "ai-engineer": handleAiEngineer,
+  "prog-basic": handleProgBasic,
+  "prog-beginner": handleProgBeginner,
+  "prog-developer": handleProgDeveloper,
+  "prog-engineer": handleProgEngineer,
   "course-selection": handleCourseSelection,
   "student-projects": handleStudentProjects,
   pricing: handlePricing,

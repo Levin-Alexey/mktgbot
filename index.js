@@ -11,7 +11,7 @@ import handleCourses, {
 import { COURSE_HANDLERS } from "./handlers/course-levels.js";
 import handleCourseSelection from "./handlers/course-selection.js";
 import { STUDENT_PROJECT_HANDLERS } from "./handlers/student-projects.js";
-import handlePricing from "./handlers/pricing.js";
+import handlePricing, { handlePricingConsult } from "./handlers/pricing.js";
 import handleQuestion, {
   clearQuestionState,
   handleQuestionMessage,
@@ -43,6 +43,7 @@ const BUTTON_HANDLERS = {
   "course-selection": handleCourseSelection,
   ...STUDENT_PROJECT_HANDLERS,
   pricing: handlePricing,
+  "pricing-consult": handlePricingConsult,
   question: handleQuestion,
 };
 

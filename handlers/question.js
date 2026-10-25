@@ -54,6 +54,11 @@ export async function startCourseSelection(ctx, prompt) {
   await startWaiting(ctx, { kind: "selection" }, prompt);
 }
 
+// Кнопка «Получить консультацию» на экране стоимости
+export async function startPricingQuestion(ctx, prompt) {
+  await startWaiting(ctx, { kind: "pricing" }, prompt);
+}
+
 async function loadState(ctx) {
   try {
     const state = JSON.parse(await ctx.env.KV.get(stateKey(ctx.chatId)));
@@ -74,8 +79,15 @@ export async function handleQuestionMessage(ctx, text) {
 
   const { course, kind } = await loadState(ctx);
   const isSelection = kind === "selection";
+  const isPricing = kind === "pricing";
   // В таблице questions нет отдельных колонок, поэтому пометка идёт в тексте
-  const mark = isSelection ? "[Подбор курса] " : course ? `[Курс: ${course}] ` : "";
+  const mark = isSelection
+    ? "[Подбор курса] "
+    : isPricing
+      ? "[Вопрос по стоимости] "
+      : course
+        ? `[Курс: ${course}] `
+        : "";
   const contactInfo = ctx.from?.username ? `@${ctx.from.username}` : null;
 
   let questionId;
@@ -103,9 +115,11 @@ export async function handleQuestionMessage(ctx, text) {
     const name = ctx.from?.first_name || "Пользователь";
     const title = isSelection
       ? `🧭 Подбор курса #${questionId}`
-      : course
-        ? `❓ Новый вопрос #${questionId}\n📚 Курс: ${course}`
-        : `❓ Новый вопрос #${questionId}`;
+      : isPricing
+        ? `💰 Вопрос по стоимости #${questionId}`
+        : course
+          ? `❓ Новый вопрос #${questionId}\n📚 Курс: ${course}`
+          : `❓ Новый вопрос #${questionId}`;
     await postToUserTopic(
       ctx,
       name,

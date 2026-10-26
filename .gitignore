@@ -1,0 +1,8 @@
+.dev.vars
+.env
+.env.*
+!.env.example
+node_modules/
+publish-mentorium-post.js
+.mentoriumkids-post.lock
+.mentoriumkids-posted
